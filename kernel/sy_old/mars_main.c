@@ -1298,10 +1298,12 @@ __s64 _check_switch(const char *path)
 }
 
 static
-int _check_allow(const char *parent_path, const char *name)
+int __check_allow(const char *parent_path,
+		  const char *name,
+		  const char *peer)
 {
 	int res = 0;
-	char *path = path_make("%s/todo-%s/%s", parent_path, my_id(), name);
+	char *path = path_make("%s/todo-%s/%s", parent_path, peer, name);
 
 	if (!path)
 		goto done;
@@ -1311,6 +1313,13 @@ int _check_allow(const char *parent_path, const char *name)
 done:
 	brick_string_free(path);
 	return res;
+}
+
+static inline
+int _check_allow(const char *parent_path,
+		 const char *name)
+{
+	return __check_allow(parent_path, name, my_id());
 }
 
 static
