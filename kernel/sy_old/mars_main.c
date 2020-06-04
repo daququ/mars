@@ -4467,6 +4467,7 @@ int make_log_init(struct mars_dent *dent)
 	 * Will be carried out later in make_log_step().
 	 * The final switch-on will be started in make_log_finalize().
 	 */
+	mutex_lock(&server_connect_lock);
 	trans_brick =
 		make_brick_all(mars_global,
 			       replay_link,
@@ -4475,13 +4476,14 @@ int make_log_init(struct mars_dent *dent)
 			       NULL,
 			       (const struct generic_brick_type*)&trans_logger_brick_type,
 			       switch_on ? 1 : 0,
-			       "%s/replay-%s", 
+			       "%s/logger-%s", 
 			       (const char *[]){"%s/data-%s"},
 			       1,
 			       parent_path,
 			       my_id(),
 			       parent_path,
 			       my_id());
+	mutex_unlock(&server_connect_lock);
 	if (!rot->trans_brick && trans_brick)
 		clear_vals(rot->msgs);
 	rot->trans_brick = (void*)trans_brick;
@@ -5901,6 +5903,7 @@ int make_gate(struct mars_rotate *rot, struct mars_dent *dent)
 
 	MARS_DBG("switch_on=%d\n", switch_on);
 
+	mutex_lock(&server_connect_lock);
 	_gate_brick =
 		make_brick_all(mars_global,
 			       dent,
@@ -5910,12 +5913,13 @@ int make_gate(struct mars_rotate *rot, struct mars_dent *dent)
 			       (const struct generic_brick_type*)&gate_brick_type,
 			       switch_on ? 2 : -1,
 			       "%s/gate-%s",
-			       (const char *[]){"%s/replay-%s"},
+			       (const char *[]){"%s/logger-%s"},
 			       1,
 			       parent->d_path,
 			       my_id(),
 			       parent->d_path,
 			       my_id());
+	mutex_unlock(&server_connect_lock);
 	rot->gate_brick = (void *)_gate_brick;
 
 	if (!_gate_brick) {
@@ -5975,7 +5979,7 @@ int make_dev(struct mars_dent *dent)
 	struct mars_dent *parent = dent->d_parent;
 	struct mars_rotate *rot = NULL;
 	struct mars_brick *dev_brick;
-	const char *prev_fmt = "%s/replay-%s";
+	const char *prev_fmt = "%s/logger-%s";
 	bool switch_on;
 	int status = 0;
 
@@ -6018,6 +6022,10 @@ int make_dev(struct mars_dent *dent)
 		(rot->if_brick && atomic_read(&rot->if_brick->open_count) > 0) ||
 		allow_dev(rot);
 
+	MARS_DBG("switch_on=%d prev_fmp='%s'\n",
+		 switch_on, prev_fmt);
+
+	mutex_lock(&server_connect_lock);
 	dev_brick =
 		make_brick_all(mars_global,
 			       dent,
@@ -6033,6 +6041,7 @@ int make_dev(struct mars_dent *dent)
 			       my_id(),
 			       parent->d_path,
 			       my_id());
+	mutex_unlock(&server_connect_lock);
 	rot->if_brick = (void*)dev_brick;
 	if (!dev_brick) {
 		MARS_DBG("device not shown\n");
@@ -6811,7 +6820,7 @@ int kill_res(struct mars_dent *dent)
 	if (rot->trans_brick) {
 		struct trans_logger_output *output = rot->trans_brick->outputs[0];
 		if (!output || output->nr_connected) {
-			MARS_ERR("cannot destroy resource '%s': trans_logger is is use!\n", rot->parent_path);
+			MARS_INF("cannot destroy resource '%s': trans_logger is is use!\n", rot->parent_path);
 			goto done;
 		}
 		rot->trans_brick->killme = true;
