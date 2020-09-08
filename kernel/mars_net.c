@@ -196,6 +196,7 @@ void _set_socketopts(struct socket *sock, struct mars_tcp_params *params, bool i
 	struct timeval t = {
 		.tv_sec = params->tcp_timeout,
 	};
+	unsigned int user_timeout = params->tcp_timeout * 1000;
 	int x_true = 1;
 
 	/* TODO: improve this by a table-driven approach
@@ -218,6 +219,7 @@ void _set_socketopts(struct socket *sock, struct mars_tcp_params *params, bool i
 	_setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, params->tcp_keepidle);
 	_setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, t);
 	_setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, t);
+	_setsockopt(sock, IPPROTO_TCP, TCP_USER_TIMEOUT, user_timeout);
 }
 
 int mars_create_socket(struct mars_socket *msock,
