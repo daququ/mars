@@ -1311,6 +1311,13 @@ static int if_open(struct block_device *bdev, fmode_t mode)
 		return -ESHUTDOWN;
 	}
 
+	if (brick->busy_open) {
+		MARS_INF("----------------------- BUSY %d ------------------------------\n",
+			 atomic_read(&brick->open_count));
+		up(&brick->switch_sem);
+		return -EBUSY;
+	}
+
 	if (!atomic_read(&brick->open_count))
 		get_lamport(NULL, &brick->open_epoch);
 	atomic_inc(&brick->open_count);
